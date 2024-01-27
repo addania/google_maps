@@ -6,7 +6,11 @@ const addressInput = document.getElementById("address")! as HTMLInputElement;
 const GOOGLE_API_KEY = "AIzaSyDcPAiz3cOtGCJRjKeaKE42i9jbK3tX73M";
 
 type GoogleGeoCodingResponse = {
-  results: Array<{ geometry: { location: { lan: number; lng: number } } }>;
+  results: Array<{
+    geometry: {
+      location: { lat: number; lng: number };
+    };
+  }>;
   status: "OK" | "ZERO_RESULTS";
 };
 
@@ -29,21 +33,41 @@ function searchAddressHandler(event: Event) {
     })
     .then((data) => console.log("my data", data.results[0].geometry.location));
   */
-  console.log("url", url);
 
   axios
     .get<GoogleGeoCodingResponse>(url)
     .then((response) => {
       if (response.data.status !== "OK") {
-        throw new Error("Ouch");
+        throw new Error(
+          "Something went wrong. Your IP address might not be allowed to use this API key. Contact Support"
+        );
       }
-      console.log("response", response);
       const coordinates = response.data.results[0].geometry.location;
-      console.log("coordinates", coordinates);
+      let map: google.maps.Map;
+      async function initMap(): Promise<void> {
+        const { Map } = (await google.maps.importLibrary(
+          "maps"
+        )) as google.maps.MapsLibrary;
+        map = new Map(document.getElementById("map") as HTMLElement, {
+          center: {
+            lat: coordinates.lat,
+            lng: coordinates.lng,
+          },
+          zoom: 13,
+        });
+
+        new google.maps.Marker({
+          // The below line is equivalent to writing:
+          // position: new google.maps.LatLng(-34.397, 150.644)
+          position: { lat: coordinates.lat, lng: coordinates.lng },
+          map: map,
+        });
+      }
+
+      initMap();
     })
     .catch((error) => {
       alert(error.message);
-      console.log(error);
     });
 }
 
